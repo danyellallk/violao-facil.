@@ -10,7 +10,7 @@ import ChordDiagram from "./src/components/ChordDiagram";
 import { SONGS } from "./src/data/songs";
 import { LESSONS } from "./src/data/lessons";
 import { transposeSequence } from "./src/utils/transposer";
-import { playChord, stopChord, playMetronomeClick } from "./src/audio/guitarAudio";
+import { playChord, stopChord, playMetronomeClick, stopMetronome } from "./src/audio/guitarAudio";
 
 const COLORS = { bg:"#0b1420", panel:"#172536", panel2:"#203247", yellow:"#f5c542", text:"#f4f6f8", muted:"#9eacba", green:"#55c995" };
 
@@ -66,7 +66,7 @@ export default function App() {
       playMetronomeClick(beat % 4 === 0).catch(() => {});
       beat += 1;
     }, 60000 / bpm);
-    return () => clearInterval(clickTimer);
+    return () => { clearInterval(clickTimer); stopMetronome().catch(() => {}); };
   }, [running, bpm]);
 
   useEffect(() => {
