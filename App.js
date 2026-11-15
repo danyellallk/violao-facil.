@@ -40,6 +40,20 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (running) playChord(currentChord).catch(() => {});
+  }, [running, currentChord]);
+
+  useEffect(() => {
+    if (!running) return;
+    let beat = 0;
+    const clickTimer = setInterval(() => {
+      playMetronomeClick(beat % 4 === 0).catch(() => {});
+      beat += 1;
+    }, 60000 / bpm);
+    return () => clearInterval(clickTimer);
+  }, [running, bpm]);
+
+  useEffect(() => {
     if (!running || mode !== "Automático") return;
     const timer = setInterval(() => {
       setStep(old => (old + 1) % chords.length);
