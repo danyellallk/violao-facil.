@@ -1,20 +1,46 @@
 # Violão Fácil
 
-Aplicativo Android de estudo de violão com catálogo Gospel e Popular, cifras, diagramas, transposição, acompanhamento de estudo e registro local de prática.
+Aplicativo Android de estudo de violão com catálogo inicial Gospel e Popular, cifras próprias, diagramas, transposição, acompanhamento, metrônomo e histórico local.
+
+## Recursos desta versão
+- Biblioteca inicial de exercícios Gospel e Popular.
+- Cadastro local de sequências de acordes.
+- Diagramas de G, D, Em, C, Am, A7 e F.
+- Transposição de acordes.
+- Modo de acompanhamento automático e manual.
+- Sintetizador instrumental de acordes gerado no aparelho.
+- Metrônomo sonoro com acento no primeiro tempo.
+- Cronômetro e histórico local de prática.
 
 ## Requisitos
 - Node.js LTS
-- Expo Go no Android para testar durante o desenvolvimento
+- Expo Go no Android para a primeira prévia
+- Conta Expo para compilar o APK com EAS Build
 
-## Instalação
+## Instalar e testar
+No terminal do Codespaces, dentro desta pasta:
+
 ```bash
 npm install
 npx expo start
 ```
-Leia o QR Code com o Expo Go.
+
+Abra o Expo Go no Android e leia o QR Code apresentado pelo terminal.
+
+## Gerar APK de teste
+Instale a ferramenta EAS:
+
+```bash
+npm install -g eas-cli
+eas login
+eas build:configure
+eas build -p android --profile preview
+```
+
+O EAS fornecerá um link para baixar o APK quando a compilação terminar. A compilação ainda precisa ser executada e testada em um aparelho Android.
 
 ## Observações
-- O catálogo inicial contém exercícios e sequências de estudo. Não inclui letras protegidas por direitos autorais.
-- O histórico é salvo localmente no aparelho.
-- A primeira versão oferece acompanhamento visual e metrônomo; reprodução de áudio instrumental real e afinador por microfone serão integrados e testados em etapas posteriores.
-- Para gerar APK de produção será necessário configurar EAS Build e executar uma compilação Android.
+- O som é sintetizado por software e serve como guia de acordes; não é uma gravação de violão acústico real.
+- O primeiro catálogo usa exercícios e sequências de estudo. Não inclui letras protegidas por direitos autorais.
+- As músicas e o histórico personalizados ficam no aparelho nesta versão.
+- Afinador por microfone, reconhecimento de acordes, sincronização em nuvem e testes completos ainda estão pendentes.
