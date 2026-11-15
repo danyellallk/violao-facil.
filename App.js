@@ -9,6 +9,7 @@ import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import ChordDiagram from "./src/components/ChordDiagram";
 import { SONGS } from "./src/data/songs";
 import { transposeSequence } from "./src/utils/transposer";
+import { playChord, stopChord, playMetronomeClick } from "./src/audio/guitarAudio";
 
 const COLORS = { bg:"#0b1420", panel:"#172536", panel2:"#203247", yellow:"#f5c542", text:"#f4f6f8", muted:"#9eacba", green:"#55c995" };
 
@@ -24,6 +25,7 @@ export default function App() {
   const [step, setStep] = useState(0);
   const [transpose, setTranspose] = useState(0);
   const [running, setRunning] = useState(false);
+  const [audioBusy, setAudioBusy] = useState(false);
   const [practiceSeconds, setPracticeSeconds] = useState(0);
   const [history, setHistory] = useState([]);
   const [customTitle, setCustomTitle] = useState("");
@@ -124,8 +126,8 @@ export default function App() {
             <View style={styles.row}><Btn title="−" onPress={() => setBpm(v=>Math.max(40,v-5))}/><View style={{flex:1}}><View style={styles.progressTrack}><View style={[styles.progressFill,{width:((bpm-40)/160*100)+"%"}]}/></View></View><Btn title="+" onPress={() => setBpm(v=>Math.min(200,v+5))}/></View>
             <View style={styles.rowBetween}><Text style={styles.muted}>Tom da música</Text><Text style={styles.value}>{transpose===0 ? "Original" : (transpose>0?"+":"")+transpose+" semitons"}</Text></View>
             <View style={styles.row}><Btn title="− Tom" onPress={() => setTranspose(v=>Math.max(-11,v-1))}/><Btn title="Restaurar" onPress={() => setTranspose(0)}/><Btn title="+ Tom" onPress={() => setTranspose(v=>Math.min(11,v+1))}/></View>
-            <Btn title={running ? "Pausar acompanhamento" : "Iniciar acompanhamento"} active onPress={() => setRunning(v=>!v)}/>
-            <Text style={styles.smallNote}>{mode==="Automático" ? "Avança automaticamente a cada compasso (4 tempos)." : "No modo manual, use os botões Anterior e Próximo."}</Text>
+            <Btn title={running ? "Pausar acompanhamento" : "Iniciar acompanhamento"} active onPress={() => { if (running) { setRunning(false); stopChord().catch(() => {}); } else { setRunning(true); } }}/><View style={styles.row}><Btn title="▶ Ouvir acorde atual" onPress={() => { setAudioBusy(true); playChord(currentChord).catch(() => {}).finally(() => setAudioBusy(false)); }}/><Btn title="■ Parar áudio" onPress={() => stopChord().catch(() => {})}/></View>
+            <Text style={styles.smallNote}>{mode==="Automático" ? "O acorde toca automaticamente a cada compasso, com metrônomo em 4 tempos." : "No modo manual, escolha os acordes e toque quando quiser."}</Text>
           </View>
           <Text style={styles.panelTitle}>Acordes da sequência</Text>
           <View style={styles.chordRow}>{chords.map((c,i)=><TouchableOpacity key={i} onPress={() => setStep(i)}><View style={[styles.chip,step===i && styles.chipActive]}><Text style={[styles.chipText,step===i && styles.chipTextActive]}>{c}</Text></View></TouchableOpacity>)}</View>
