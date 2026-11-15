@@ -204,7 +204,7 @@ export default function App() {
         </>}
         {tab === "Acordes" && <>
           <Text style={styles.heading}>Dicionário de acordes</Text><Text style={styles.muted}>Diagramas básicos para começar.</Text>
-          <View style={styles.diagramGrid}>{["G","D","Em","C","Am","A7","F"].map(c=><ChordDiagram key={c} chord={c}/>)}</View>
+          <View style={styles.diagramGrid}>{["G","D","Em","C","Am","A7","F","E","A","Dm","E7","D7","C7","B7","Fmaj7","Em7","Am7","G7"].map(c=><ChordDiagram key={c} chord={c}/>)}</View>
           <Text style={styles.smallNote}>Os números indicam dedos sugeridos; 0 significa corda solta e × significa não tocar.</Text>
         </>}
         {tab === "Progresso" && <>
