@@ -101,7 +101,10 @@ export async function playChord(chord) {
   return currentSound;
 }
 
-export async function playMetronomeClick(accent=false) {
+const clickSounds = { strong: null, soft: null };
+const clickPromises = { strong: null, soft: null };
+
+function makeClickWav(accent=false) {
   const frequency=accent?1200:850;
   const sampleRate=22050, count=Math.floor(sampleRate*0.045);
   const data=new Uint8Array(44+count*2), view=new DataView(data.buffer);
@@ -110,9 +113,39 @@ export async function playMetronomeClick(accent=false) {
   view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
   view.setUint32(24,sampleRate,true);view.setUint32(28,sampleRate*2,true);
   view.setUint16(32,2,true);view.setUint16(34,16,true);write(36,"data");view.setUint32(40,count*2,true);
-  for(let i=0;i<count;i++){const t=i/sampleRate;const v=Math.sin(2*Math.PI*frequency*t)*Math.exp(-t*75);view.setInt16(44+i*2,Math.round(v*18000),true);}
-  const uri=(FileSystem.cacheDirectory||FileSystem.documentDirectory)+"metronome-"+(accent?"strong":"soft")+".wav";
-  await FileSystem.writeAsStringAsync(uri,base64(data),{encoding:FileSystem.EncodingType.Base64});
-  const {sound}=await Audio.Sound.createAsync({uri},{shouldPlay:true,volume:0.55});
-  sound.setOnPlaybackStatusUpdate(status=>{if(status.didJustFinish)sound.unloadAsync().catch(()=>{});});
+  for(let i=0;i<count;i++){
+    const t=i/sampleRate;
+    const v=Math.sin(2*Math.PI*frequency*t)*Math.exp(-t*75);
+    view.setInt16(44+i*2,Math.round(v*18000),true);
+  }
+  return base64(data);
+}
+
+async function getClickSound(accent=false) {
+  const key=accent?"strong":"soft";
+  if(clickSounds[key]) return clickSounds[key];
+  if(!clickPromises[key]) {
+    clickPromises[key]=(async()=>{
+      const uri=(FileSystem.cacheDirectory||FileSystem.documentDirectory)+"metronome-"+key+".wav";
+      await FileSystem.writeAsStringAsync(uri,makeClickWav(accent),{encoding:FileSystem.EncodingType.Base64});
+      const result=await Audio.Sound.createAsync({uri},{shouldPlay:false,volume:0.55});
+      clickSounds[key]=result.sound;
+      return result.sound;
+    })().catch(error=>{clickPromises[key]=null;throw error;});
+  }
+  return clickPromises[key];
+}
+
+export async function playMetronomeClick(accent=false) {
+  const sound=await getClickSound(accent);
+  await sound.replayAsync();
+}
+
+export async function stopMetronome() {
+  const sounds=Object.values(clickSounds).filter(Boolean);
+  await Promise.all(sounds.map(async sound=>{
+    try { await sound.stopAsync(); await sound.unloadAsync(); } catch {}
+  }));
+  clickSounds.strong=null; clickSounds.soft=null;
+  clickPromises.strong=null; clickPromises.soft=null;
 }
