@@ -31,14 +31,27 @@ export default function App() {
   const [audioBusy, setAudioBusy] = useState(false);
   const [practiceSeconds, setPracticeSeconds] = useState(0);
   const [history, setHistory] = useState([]);
+  const [favorites, setFavorites] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState("Todas");
+  const [searchText, setSearchText] = useState("");
+  const [customSongs, setCustomSongs] = useState([]);
   const [customTitle, setCustomTitle] = useState("");
   const [customChords, setCustomChords] = useState("G D Em C");
   const chords = useMemo(() => transposeSequence(song.progression, transpose), [song, transpose]);
   const currentChord = chords[step % chords.length];
+  const allSongs = useMemo(() => [...SONGS, ...customSongs], [customSongs]);
+  const visibleSongs = useMemo(() => allSongs.filter(item =>
+    (categoryFilter === "Todas" || (categoryFilter === "Favoritas" ? favorites.includes(item.id) : item.category === categoryFilter)) &&
+    (item.title.toLowerCase().includes(searchText.toLowerCase()) || item.artist.toLowerCase().includes(searchText.toLowerCase()))
+  ), [allSongs, categoryFilter, favorites, searchText]);
 
   useEffect(() => {
     AsyncStorage.getItem("violao-facil-history").then(value => {
       if (value) setHistory(JSON.parse(value));
+    }).catch(() => {});
+    AsyncStorage.multiGet(["violao-facil-favorites","violao-facil-custom-songs"]).then(values => {
+      if (values[0][1]) setFavorites(JSON.parse(values[0][1]));
+      if (values[1][1]) setCustomSongs(JSON.parse(values[1][1]));
     }).catch(() => {});
   }, []);
 
@@ -81,6 +94,12 @@ export default function App() {
     setPracticeSeconds(0);
   }
 
+  async function toggleFavorite(item) {
+    const next = favorites.includes(item.id) ? favorites.filter(id => id !== item.id) : [...favorites, item.id];
+    setFavorites(next);
+    await AsyncStorage.setItem("violao-facil-favorites", JSON.stringify(next));
+  }
+
   function chooseSong(item) {
     setSong(item); setStep(0); setTranspose(0); setRunning(false); setTab("Tocar");
   }
@@ -89,7 +108,9 @@ export default function App() {
     const parsed = customChords.trim().split(/[ ,;]+/).filter(Boolean);
     if (!customTitle.trim() || parsed.length === 0) return;
     const item = { id:"custom-"+Date.now(), title:customTitle.trim(), artist:"Minha música", category:"Minhas músicas", key:parsed[0][0], chords:parsed, progression:parsed, note:"Cifra adicionada por você." };
-    SONGS.push(item);
+    const next = [...customSongs, item];
+    setCustomSongs(next);
+    AsyncStorage.setItem("violao-facil-custom-songs", JSON.stringify(next)).catch(() => {});
     setCustomTitle(""); setCustomChords("G D Em C"); chooseSong(item);
   }
 
@@ -111,11 +132,17 @@ export default function App() {
         {tab === "Músicas" && <>
           <Text style={styles.heading}>Biblioteca</Text>
           <Text style={styles.muted}>Escolha uma sequência para praticar.</Text>
-          {SONGS.map(item => <TouchableOpacity key={item.id} style={styles.songCard} onPress={() => chooseSong(item)}>
-            <View style={styles.songIcon}><Text style={styles.songIconText}>♫</Text></View>
-            <View style={{flex:1}}><Text style={styles.songTitle}>{item.title}</Text><Text style={styles.muted}>{item.artist} • {item.category}</Text><Text style={styles.chordLine}>{item.progression.join("  ·  ")}</Text></View>
-            <Text style={styles.arrow}>›</Text>
-          </TouchableOpacity>)}
+          <TextInput value={searchText} onChangeText={setSearchText} placeholder="Buscar música ou artista" placeholderTextColor={COLORS.muted} style={styles.input}/>
+          <View style={styles.chordRow}>
+            {["Todas","Gospel","Popular","Minhas músicas","Favoritas"].map(filter => <TouchableOpacity key={filter} onPress={() => setCategoryFilter(filter)}><View style={[styles.chip,categoryFilter===filter && styles.chipActive]}><Text style={[styles.chipText,categoryFilter===filter && styles.chipTextActive]}>{filter}</Text></View></TouchableOpacity>)}
+          </View>
+          {visibleSongs.length===0 ? <Text style={styles.muted}>Nenhuma música encontrada. Experimente outro filtro ou termo.</Text> : visibleSongs.map(item => <View key={item.id} style={styles.songCard}>
+            <TouchableOpacity style={styles.songMain} onPress={() => chooseSong(item)}>
+              <View style={styles.songIcon}><Text style={styles.songIconText}>♫</Text></View>
+              <View style={{flex:1}}><Text style={styles.songTitle}>{item.title}</Text><Text style={styles.muted}>{item.artist} • {item.category}</Text><Text style={styles.chordLine}>{item.progression.join("  ·  ")}</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => toggleFavorite(item)} style={styles.favoriteButton}><Text style={styles.favoriteText}>{favorites.includes(item.id) ? "♥" : "♡"}</Text></TouchableOpacity>
+          </View>)}
           <View style={styles.panel}>
             <Text style={styles.panelTitle}>Adicionar minha cifra</Text>
             <TextInput value={customTitle} onChangeText={setCustomTitle} placeholder="Nome da música" placeholderTextColor={COLORS.muted} style={styles.input}/>
@@ -198,7 +225,7 @@ const styles = StyleSheet.create({
   headerBadge:{borderWidth:1,borderColor:"#536477",borderRadius:20,paddingHorizontal:10,paddingVertical:5},headerBadgeText:{color:COLORS.yellow,fontSize:10,fontWeight:"800"},
   tabs:{flexDirection:"row",paddingHorizontal:4,borderBottomWidth:1,borderColor:"#243447"},tab:{flex:1,alignItems:"center",paddingVertical:12,minWidth:0},tabSelected:{borderBottomWidth:3,borderColor:COLORS.yellow},tabText:{fontSize:10,color:COLORS.muted,fontWeight:"700"},tabTextSelected:{color:COLORS.yellow},
   content:{padding:16,paddingBottom:35},heading:{fontSize:25,fontWeight:"900",color:COLORS.text,marginTop:5},muted:{color:COLORS.muted,fontSize:12,marginTop:4},eyebrow:{color:COLORS.yellow,fontSize:10,fontWeight:"900",letterSpacing:1},
-  songCard:{backgroundColor:COLORS.panel,borderRadius:15,padding:13,marginTop:12,flexDirection:"row",alignItems:"center",gap:11},songIcon:{width:42,height:42,borderRadius:12,backgroundColor:COLORS.panel2,alignItems:"center",justifyContent:"center"},songIconText:{fontSize:23,color:COLORS.yellow},songTitle:{fontSize:15,color:COLORS.text,fontWeight:"800"},chordLine:{color:COLORS.yellow,fontSize:12,marginTop:7,fontWeight:"700"},arrow:{fontSize:28,color:COLORS.muted},
+  songCard:{backgroundColor:COLORS.panel,borderRadius:15,padding:13,marginTop:12,flexDirection:"row",alignItems:"center",gap:8},songMain:{flex:1,flexDirection:"row",alignItems:"center",gap:11},favoriteButton:{padding:8},favoriteText:{fontSize:25,color:COLORS.yellow},songIcon:{width:42,height:42,borderRadius:12,backgroundColor:COLORS.panel2,alignItems:"center",justifyContent:"center"},songIconText:{fontSize:23,color:COLORS.yellow},songTitle:{fontSize:15,color:COLORS.text,fontWeight:"800"},chordLine:{color:COLORS.yellow,fontSize:12,marginTop:7,fontWeight:"700"},arrow:{fontSize:28,color:COLORS.muted},
   panel:{backgroundColor:COLORS.panel,borderRadius:16,padding:15,marginTop:16,gap:12},panelTitle:{fontSize:16,fontWeight:"800",color:COLORS.text,marginTop:13},input:{backgroundColor:COLORS.bg,borderRadius:10,padding:12,color:COLORS.text,borderWidth:1,borderColor:"#34465a"},
   btn:{backgroundColor:COLORS.panel2,borderRadius:11,paddingVertical:11,paddingHorizontal:14,alignItems:"center",justifyContent:"center",flex:1},btnActive:{backgroundColor:COLORS.yellow},btnSmall:{paddingHorizontal:18},btnText:{color:COLORS.text,fontWeight:"800",fontSize:12},btnTextActive:{color:"#172536"},
   currentCard:{backgroundColor:COLORS.panel,borderRadius:18,padding:22,alignItems:"center",marginTop:18},currentChord:{fontSize:66,color:COLORS.yellow,fontWeight:"900",marginVertical:6},progressTrack:{height:6,backgroundColor:"#34465a",borderRadius:5,overflow:"hidden",width:"100%",marginTop:15},progressFill:{height:6,backgroundColor:COLORS.green,borderRadius:5},
