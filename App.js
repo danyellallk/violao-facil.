@@ -8,6 +8,7 @@ import * as Haptics from "expo-haptics";
 import { StatusBar as ExpoStatusBar } from "expo-status-bar";
 import ChordDiagram from "./src/components/ChordDiagram";
 import { SONGS } from "./src/data/songs";
+import { LESSONS } from "./src/data/lessons";
 import { transposeSequence } from "./src/utils/transposer";
 import { playChord, stopChord, playMetronomeClick } from "./src/audio/guitarAudio";
 
@@ -19,6 +20,8 @@ function Btn({ title, onPress, active=false, small=false }) {
 
 export default function App() {
   const [tab, setTab] = useState("Músicas");
+  const [lessonIndex, setLessonIndex] = useState(0);
+  const [lessonStep, setLessonStep] = useState(0);
   const [song, setSong] = useState(SONGS[0]);
   const [mode, setMode] = useState("Automático");
   const [bpm, setBpm] = useState(70);
@@ -102,7 +105,7 @@ export default function App() {
         <View style={styles.headerBadge}><Text style={styles.headerBadgeText}>ANDROID</Text></View>
       </View>
       <View style={styles.tabs}>
-        {["Músicas","Tocar","Acordes","Progresso"].map(item => <TouchableOpacity key={item} onPress={() => setTab(item)} style={[styles.tab, tab===item && styles.tabSelected]}><Text style={[styles.tabText,tab===item && styles.tabTextSelected]}>{item}</Text></TouchableOpacity>)}
+        {["Músicas","Aulas","Tocar","Acordes","Progresso"].map(item => <TouchableOpacity key={item} onPress={() => setTab(item)} style={[styles.tab, tab===item && styles.tabSelected]}><Text style={[styles.tabText,tab===item && styles.tabTextSelected]}>{item}</Text></TouchableOpacity>)}
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         {tab === "Músicas" && <>
@@ -119,6 +122,29 @@ export default function App() {
             <TextInput value={customChords} onChangeText={setCustomChords} placeholder="Ex.: G D Em C" placeholderTextColor={COLORS.muted} style={styles.input}/>
             <Btn title="Adicionar música" onPress={addSong} active/>
           </View>
+        </>}
+        {tab === "Aulas" && <>
+          <Text style={styles.heading}>Aulas guiadas</Text>
+          <Text style={styles.muted}>Treinos curtos para evoluir passo a passo.</Text>
+          <View style={styles.row}>
+            {LESSONS.map((item,index)=><Btn key={item.id} title={"Aula "+item.number} active={lessonIndex===index} onPress={()=>{setLessonIndex(index);setLessonStep(0);}} small/>)}
+          </View>
+          <View style={styles.panel}>
+            <Text style={styles.eyebrow}>{LESSONS[lessonIndex].duration.toUpperCase()} • TREINO GUIADO</Text>
+            <Text style={styles.panelTitle}>{LESSONS[lessonIndex].title}</Text>
+            <Text style={styles.value}>Foco: {LESSONS[lessonIndex].focus}</Text>
+            <Text style={styles.muted}>{LESSONS[lessonIndex].goal}</Text>
+            <View style={styles.progressTrack}><View style={[styles.progressFill,{width:((lessonStep+1)/LESSONS[lessonIndex].steps.length*100)+"%"}]}/></View>
+            <Text style={styles.value}>Etapa {lessonStep+1} de {LESSONS[lessonIndex].steps.length}</Text>
+            <Text style={styles.songTitle}>{LESSONS[lessonIndex].steps[lessonStep].title}</Text>
+            <Text style={styles.muted}>{LESSONS[lessonIndex].steps[lessonStep].detail}</Text>
+            <View style={styles.row}>
+              <Btn title="‹ Voltar" small onPress={()=>setLessonStep(s=>Math.max(0,s-1))}/>
+              <Btn title={lessonStep===LESSONS[lessonIndex].steps.length-1 ? "Recomeçar aula" : "Próxima etapa ›"} active small onPress={()=>setLessonStep(s=>s===LESSONS[lessonIndex].steps.length-1?0:s+1)}/>
+            </View>
+            <Btn title="Praticar esta sequência" onPress={()=>{setSong(SONGS[0]);setStep(0);setTranspose(0);setRunning(false);setTab("Tocar");}}/>
+          </View>
+          <Text style={styles.smallNote}>Dica: pare se sentir dor. Faça pausas curtas e priorize um som limpo em vez de velocidade.</Text>
         </>}
         {tab === "Tocar" && <>
           <Text style={styles.eyebrow}>{song.category.toUpperCase()} • MODO DE ESTUDO</Text>
@@ -170,7 +196,7 @@ const styles = StyleSheet.create({
   header:{paddingHorizontal:18,paddingTop:12,paddingBottom:16,flexDirection:"row",justifyContent:"space-between",alignItems:"center"},
   brand:{fontSize:23,fontWeight:"900",letterSpacing:1,color:COLORS.text},subtitle:{color:COLORS.muted,fontSize:12,marginTop:2},
   headerBadge:{borderWidth:1,borderColor:"#536477",borderRadius:20,paddingHorizontal:10,paddingVertical:5},headerBadgeText:{color:COLORS.yellow,fontSize:10,fontWeight:"800"},
-  tabs:{flexDirection:"row",paddingHorizontal:8,borderBottomWidth:1,borderColor:"#243447"},tab:{flex:1,alignItems:"center",paddingVertical:12},tabSelected:{borderBottomWidth:3,borderColor:COLORS.yellow},tabText:{fontSize:11,color:COLORS.muted,fontWeight:"700"},tabTextSelected:{color:COLORS.yellow},
+  tabs:{flexDirection:"row",paddingHorizontal:4,borderBottomWidth:1,borderColor:"#243447"},tab:{flex:1,alignItems:"center",paddingVertical:12,minWidth:0},tabSelected:{borderBottomWidth:3,borderColor:COLORS.yellow},tabText:{fontSize:10,color:COLORS.muted,fontWeight:"700"},tabTextSelected:{color:COLORS.yellow},
   content:{padding:16,paddingBottom:35},heading:{fontSize:25,fontWeight:"900",color:COLORS.text,marginTop:5},muted:{color:COLORS.muted,fontSize:12,marginTop:4},eyebrow:{color:COLORS.yellow,fontSize:10,fontWeight:"900",letterSpacing:1},
   songCard:{backgroundColor:COLORS.panel,borderRadius:15,padding:13,marginTop:12,flexDirection:"row",alignItems:"center",gap:11},songIcon:{width:42,height:42,borderRadius:12,backgroundColor:COLORS.panel2,alignItems:"center",justifyContent:"center"},songIconText:{fontSize:23,color:COLORS.yellow},songTitle:{fontSize:15,color:COLORS.text,fontWeight:"800"},chordLine:{color:COLORS.yellow,fontSize:12,marginTop:7,fontWeight:"700"},arrow:{fontSize:28,color:COLORS.muted},
   panel:{backgroundColor:COLORS.panel,borderRadius:16,padding:15,marginTop:16,gap:12},panelTitle:{fontSize:16,fontWeight:"800",color:COLORS.text,marginTop:13},input:{backgroundColor:COLORS.bg,borderRadius:10,padding:12,color:COLORS.text,borderWidth:1,borderColor:"#34465a"},
